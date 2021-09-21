@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import './articles.css';
 
-/*
-   TODO: In this case I think that to avoid multiple mapping this methods should be created on the server side,
-*/
-
 const Articles = () => {
 
   const history = useHistory();
@@ -21,12 +17,8 @@ const Articles = () => {
   }, [])
 
   useEffect(() => {
-      convertToRecursive(articles)
+    convertToRecursive(articles)
   }, [articles])
-
-  useEffect(() => {
-    console.log(selectedArticles)
-  }, [selectedArticles])
 
   const findArticlesChildren = (parentId, givenPath) => {
     let array = [];
@@ -37,35 +29,35 @@ const Articles = () => {
         array.push({...article, isChecked: false, path: createPath});
       }
     });
+
     return array;
   }
 
   const convertToRecursive = () => {
     let newNestedArticlesList = [];
     articles && articles.map(article => {
-        article.parent === 0 && newNestedArticlesList.push({
-          ...article,
-          isChecked: false,
-          path: `/${article.name}`,
-        })
+      article.parent === 0 && newNestedArticlesList.push({
+        ...article,
+        isChecked: false,
+        path: `/${article.name}`,
+      })
     });
+
     let createPath = '';
-    const recursive = (givenArray, isChildren) => {
-      // if(!isChildren) {
-      //   createPath = '';
-      // }
+
+    const recursive = (givenArray, isChildren, isFirst) => {
       givenArray.map(article => {
-        if(!isChildren) {
-          createPath = `${article.path}`;
-        } else {
+        if(!isChildren && !isFirst) {
           createPath+=`/${article.name}`;
+        } else {
+          createPath = `${article.path}/${createPath}`
+          createPath = `${article.path}`;
         }
         article.children = findArticlesChildren(article.id, createPath);
         recursive(article.children, true)
       })
     };
-    recursive(newNestedArticlesList);
-    console.log(newNestedArticlesList)
+    recursive(newNestedArticlesList, false, true);
     setNestedArticlesList(newNestedArticlesList);
   }
 
@@ -81,33 +73,29 @@ const Articles = () => {
         if(isChildren) {
           article.isChecked = false;
         }
-        if(!article.children) {
-          console.log(article, 'nuk ka ma posht shqipe')
-        }
         recursive(article.children);
       }
     })
     recursive(oldNestedArticlesList);
-
     setNestedArticlesList(oldNestedArticlesList)
   }
 
   const renderArticlesNestedList = (givenNestedArticlesList, isChecked) => {
     return isChecked && <div className="article">
       {givenNestedArticlesList && React.Children.toArray(givenNestedArticlesList.map(article => <>
-        <div className="article__item"
-             onClick={() => selectRequiredArticle(article.id)}>
-            <div className={`checkbox ${article.isChecked && 'checkbox--checked'}`} />
-            <p>{article.name}</p>
-          </div>
-          {renderArticlesNestedList(article.children, article.isChecked)}
-        </>
+            <div className="article__item"
+                 onClick={() => selectRequiredArticle(article.id)}>
+              <div className={`checkbox ${article.isChecked && 'checkbox--checked'}`} />
+              <p>{article.name}</p>
+            </div>
+            {renderArticlesNestedList(article.children, article.isChecked)}
+          </>
       ))}
     </div>
   }
 
   const navigateToSummaryDetails = () => {
-    history.push('/summary')
+    history.push('/summary',[nestedArticlesList])
   }
 
   return <>
@@ -115,7 +103,7 @@ const Articles = () => {
       {renderArticlesNestedList(nestedArticlesList, true)}
       <div className="summary">
         <button onClick={() => navigateToSummaryDetails()}
-              className="summary__button"
+                className="summary__button"
         >Summary</button>
       </div>
     </div>
